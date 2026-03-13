@@ -19,6 +19,11 @@ ANALYSIS_PROMPT = """Analyze this Wikipedia article as an experienced editor wou
 - Dead links: {dead_links}
 - Categories: {categories}
 - Last edited: {last_edited} by {last_editor}
+- Edits sampled: {edit_count_sampled} recent revisions · {unique_editors} unique editors
+- Reverts detected: {revert_count}
+- Size change (recent 50 edits): {size_delta_recent:+d} bytes
+- Recent editors: {recent_editors}
+- Recent edit summaries: {edit_comments}
 
 ## Article Text (first 8000 chars)
 {text}
@@ -54,6 +59,9 @@ What viewpoints, regions, time periods, or groups are underrepresented or absent
 ## Factual Concerns
 Any claims that seem questionable, outdated, or contradicted by the categories/context?
 
+## Edit History Signals
+What does the edit pattern reveal? Look for: edit wars, coordinated editing, topic disputes, recent vandalism, bot activity, who owns the article, whether it's actively maintained or abandoned.
+
 ## Top 3 Editing Priorities
 Concrete, actionable improvements an editor should make first.
 
@@ -74,6 +82,12 @@ def analyze(article: dict, provider: str) -> str:
         categories=", ".join(article["categories"]),
         last_edited=article["last_edited"],
         last_editor=article["last_editor"],
+        edit_count_sampled=article.get("edit_count_sampled", "?"),
+        unique_editors=article.get("unique_editors", "?"),
+        revert_count=article.get("revert_count", 0),
+        size_delta_recent=article.get("size_delta_recent", 0),
+        recent_editors=", ".join(article.get("recent_editors", [])),
+        edit_comments="  - ".join(article.get("edit_comments", [])[:8]),
         text=article["text"],
     )
 

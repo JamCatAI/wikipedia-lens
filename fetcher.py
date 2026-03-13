@@ -104,6 +104,18 @@ def fetch(source: str) -> dict:
         print(f"error: article not found: {title!r}", file=sys.stderr)
         sys.exit(1)
 
+    # edit history — last 50 revisions
+    hist_data = _api({
+        "action": "query",
+        "titles": title,
+        "prop": "revisions",
+        "rvprop": "timestamp|user|comment|size|flags",
+        "rvlimit": 50,
+        "redirects": True,
+    }, lang)
+    hist_pages = hist_data.get("query", {}).get("pages", {})
+    revisions  = next(iter(hist_pages.values())).get("revisions", [])
+
     # full wikitext — source of truth for both text and metrics
     wt_data = _api({
         "action": "query",
@@ -129,6 +141,15 @@ def fetch(source: str) -> dict:
     # convert wikitext → plain text (fixes the truncation bug)
     text = _wikitext_to_plain(wikitext)
 
+    # edit history metrics
+    unique_editors = len({r.get("user", "") for r in revisions})
+    revert_count   = sum(1 for r in revisions
+                         if re.search(r"\brevert\b|\brvv?\b|\bundid\b", r.get("comment", ""), re.IGNORECASE))
+    sizes = [r.get("size", 0) for r in revisions if "size" in r]
+    size_delta = (sizes[0] - sizes[-1]) if len(sizes) >= 2 else 0
+    recent_editors = list({r.get("user", "") for r in revisions[:10]})[:8]
+    edit_comments  = [r.get("comment", "").strip() for r in revisions[:15] if r.get("comment", "").strip()]
+
     categories = [c["title"].replace("Category:", "") for c in page.get("categories", [])]
     ext_links  = [l["*"] for l in page.get("extlinks", [])]
 
@@ -143,6 +164,12 @@ def fetch(source: str) -> dict:
         "external_links": ext_links[:10],
         "last_edited": (page.get("revisions", [{}])[0].get("timestamp", "unknown")),
         "last_editor": (page.get("revisions", [{}])[0].get("user", "unknown")),
+        "edit_count_sampled": len(revisions),
+        "unique_editors": unique_editors,
+        "revert_count": revert_count,
+        "size_delta_recent": size_delta,
+        "recent_editors": recent_editors,
+        "edit_comments": edit_comments,
         "ref_count": ref_count,
         "citation_needed_count": cite_needed,
         "npov_tags": npov_tags,
