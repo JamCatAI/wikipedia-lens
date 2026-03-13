@@ -4,6 +4,13 @@ import argparse
 import os
 import sys
 
+# auto-load .env if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 PROVIDERS = ["gemini", "claude", "openai", "groq"]
 API_KEY_MAP = {
     "claude": "ANTHROPIC_API_KEY",
